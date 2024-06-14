@@ -1,0 +1,927 @@
+
+- Задание 1.
+    - ISP
+        
+        hostnamectl set-hostname isp.au.team; exec bash
+        
+        vim /etc/resolv.conf
+        
+        nameserver 8.8.8.8
+        
+        nameserver 10.10.10.100
+        
+        vim /etc/net/sysctl.conf 
+        
+        net.ipv4.ip_forward = 1
+        
+        cd /etc/net/ifaces/
+        
+        cp -r enp0s3/ enp0s8
+        
+        vim enp0s8/options
+        
+        BOOTPROTO=static
+        
+        vim enp0s8/ipv4address
+        
+        пишем ip (100.100.100.1/28)
+        
+        ip a add 100.100.100.1/28 dev enp0s8
+        
+        vim enp0s8/ipv4route
+        
+        10.10.10.0/24 via 100.100.100.10
+        
+        cp -r enp0s8/ enp0s9
+        
+        cp -r enp0s8/ enp0s10
+        
+        vim enp0s9/ipv4address
+        
+        пишем ip (150.150.150.1/28)
+        
+        ip a add 150.150.150.1/28 dev enp0s9
+        
+        vim enp0s9/ipv4route
+        
+        20.20.20.0/24 via 150.150.150.10
+        
+        vim enp0s10/ipv4address
+        
+        пишем ip (35.35.35.1/28)
+        
+        ip a add 35.35.35.1/28 dev enp0s10
+        
+        systemctl restart network
+        
+        apt-get update && apt-get install chrony nftables -y
+        
+        vim /etc/nftables/nftables.nft
+        
+        в начало:
+        flush ruleset
+        
+        в конец:
+        table ip nat {
+          chain postrouting {
+             type nat hook postrouting priority 0;
+             oifname enp0s3 (интерфейс в сторону интернета) masquerade;
+          }
+        }
+        
+        systemctl enable --now nftables
+        
+        nft -f /etc/nftables/nftables.nft
+        
+    - CLI
+        
+        hostnamectl set-hostname cli.au.team; exec bash
+        
+        cp -r /etc/net/ifaces/enp0s3/  /etc/net/ifaces/enp0s8/
+        
+        vim /etc/net/ifaces/enp0s8/options
+        
+        BOOTPROTO=static
+        
+        vim /etc/net/ifaces/enp0s8/ipv4address
+        
+        пишем ip (35.35.35.10/28)
+        
+        ip a add 35.35.35.10/28 dev enp0s8
+        
+        vim /etc/net/ifaces/enp0s8/ipv4route
+        
+        default via 35.35.35.1 (ip адрес isp)
+        
+        ip route add default via 35.35.35.1
+        
+        systemctl restart network
+        
+        если “ping ya.ru” не идет, то в 
+        vim /etc/net/ifaces/ens8/resolv.conf 
+        nameserver 94.232.137.104
+        
+        apt-get update && apt-get install yandex-browser chrony -y
+        
+    - RTR-L
+        
+        hostnamectl set-hostname rtr-l.au.team; exec bash
+        
+        vim /etc/net/sysctl.conf 
+        
+        net.ipv4.ip_forward = 1
+        
+        cd /etc/net/ifaces/
+        
+        vim enp0s3/options
+        
+        BOOTPROTO=static
+        
+        cp -r enp0s3/ enp0s8
+        
+        vim enp0s3/ipv4address
+        
+        пишем ip (100.100.100.10/28)
+        
+        ip a add 100.100.100.10/28 dev enp0s3
+        
+        vim enp0s3/ipv4route
+        
+        default via 100.100.100.1 (ip адрес isp)
+        
+        ip route add default via 100.100.100.1 
+        
+        vim enp0s8/ipv4address
+        
+        пишем ip (10.10.10.1/24)
+        
+        ip a add 10.10.10.1/24 dev enp0s8
+        
+        systemctl restart network
+        
+        apt-get update && apt-get install strongswan  chrony nftables -y
+        
+    - RTR-R
+        
+        hostnamectl set-hostname rtr-r.au.team; exec bash
+        
+        vim /etc/net/sysctl.conf 
+        
+        net.ipv4.ip_forward = 1
+        
+        cd /etc/net/ifaces/
+        
+        vim enp0s3/options
+        
+        BOOTPROTO=static
+        
+        cp -r enp0s3/ enp0s8
+        
+        vim enp0s3/ipv4address
+        
+        пишем ip (150.150.150.10/28)
+        
+        ip a add 150.150.150.10/28 dev enp0s3
+        
+        vim enp0s3/ipv4route
+        
+        default via 150.150.150.1 (ip адрес isp)
+        
+        ip route add default via 150.150.150.1 
+        
+        vim enp0s8/ipv4address
+        
+        пишем ip (20.20.20.1/24)
+        
+        ip a add 20.20.20.1/24 dev enp0s8
+        
+        systemctl restart network
+        
+        apt-get update && apt-get  install chrony strongswan  nftables -y
+        
+    - WEB-L
+        
+        hostnamectl set-hostname web-l.au.team; exec bash
+        
+        vim /etc/net/ifaces/enp0s3/options
+        
+        BOOTPROTO=static
+        
+        vim /etc/net/ifaces/enp0s3/ipv4address
+        
+        пишем ip (10.10.10.110/24)
+        
+        ip a add 10.10.10.110/24 dev enp0s3
+        
+        vim /etc/net/ifaces/enp0s3/ipv4route
+        
+        default via 10.10.10.1 (ip адрес rtr-l)
+        
+        ip route add default via 10.10.10.1
+        
+        systemctl restart network
+        
+        apt-get update && apt-get install chrony docker-compose docker-io -y
+        
+    - WEB-R
+        
+        hostnamectl set-hostname web-r.au.team; exec bash
+        
+        vim /etc/net/ifaces/enp0s3/options
+        
+        BOOTPROTO=static
+        
+        vim /etc/net/ifaces/enp0s3/ipv4address
+        
+        пишем ip (20.20.20.100/24)
+        
+        ip a add 20.20.20.100/24 dev enp0s3
+        
+        vim /etc/net/ifaces/enp0s3/ipv4route
+        
+        default via 20.20.20.1 (ip адрес rtr-l)
+        
+        ip route add default via 20.20.20.1
+        
+        systemctl restart network
+        
+        apt-get update && apt-get install chrony  bind bind-utils -y
+        
+    - SRV-L
+        
+        hostnamectl set-hostname srv-l.au.team; exec bash
+        
+        vim /etc/net/ifaces/enp0s3/options
+        
+        BOOTPROTO=static
+        
+        vim /etc/net/ifaces/enp0s3/ipv4address
+        
+        пишем ip (10.10.10.100/24)
+        
+        ip a add 10.10.10.100/24 dev enp0s3
+        
+        vim /etc/net/ifaces/enp0s3/ipv4route
+        
+        default via 10.10.10.1 (ip адрес rtr-l)
+        
+        ip route add default via 10.10.10.1
+        
+        systemctl restart network
+        
+        apt-get update && apt-get install chrony bind bind-utils nfs-server -y
+        
+- Задание 2.
+    - RTR-L
+        
+        если “ping ya.ru” не идет, то в 
+        vim /etc/net/ifaces/ens8/resolv.conf 
+        nameserver 94.232.137.104
+        
+        vim /etc/nftables/nftables.nft
+        
+        в начало:
+        flush ruleset
+        
+        в конец:
+        table ip nat {
+          chain postrouting {
+             type nat hook postrouting priority 0;
+             ip saddr 10.10.10.0/24 oifname enp0s3 (интерфейс в сторону интернета) masquerade;
+          }
+        chain prerouting {
+             type nat hook prerouting priority 0;
+             tcp dport 2024 dnat to 10.10.10.110:2024;
+             udp dport 53 dnat to 10.10.10.100:53;
+          }
+        }
+        
+        systemctl enable --now nftables
+        
+        nft -f /etc/nftables/nftables.nft
+        
+    - RTR-R
+        
+        если “ping ya.ru” не идет, то в 
+        vim /etc/net/ifaces/ens8/resolv.conf 
+        nameserver 94.232.137.104
+        
+        vim /etc/nftables/nftables.nft
+        
+        в начало:
+        flush ruleset
+        
+        в конец:
+        table ip nat {
+          chain postrouting {
+             type nat hook postrouting priority 0;
+             ip saddr 20.20.20.0/24 oifname enp0s3 (интерфейс в сторону интернета) masquerade;
+          }
+        
+        chain prerouting {
+             type nat hook prerouting priority 0;
+             tcp dport 2024 dnat to 20.20.20.100:2024;
+             udp dport 53 dnat to 20.20.20.100:53;
+          }
+        }
+        
+        systemctl enable --now nftables
+        
+        nft -f /etc/nftables/nftables.nft
+        
+- Задание 3.
+    - RTR-L
+        
+        vim /etc/gre.up
+        
+        #!/bin/bash
+        
+        ip tunnel add tun0 mode gre local 100.100.100.10 remote 150.150.150.10 
+        
+        ip addr add 10.5.5.1/30 dev tun0
+        
+        ip link set up tun0
+        
+        ip route add 20.20.20.0/24 via 10.5.5.2
+        
+        chmod +x /etc/gre.up
+        
+        /etc/gre.up
+        
+        vim /etc/crontab
+        
+        в конец @reboot root /etc/gre.up
+        
+        vim /etc/strongswan/ipsec.conf
+        
+        ниже “config setup” пишем:
+        
+        conn vpn
+        
+        auto=start
+        type=tunnel
+        authby=secret
+        left=100.100.100.10 
+        
+        right=150.150.150.10 
+        
+        leftsubnet=0.0.0.0/0
+        rightsubnet=0.0.0.0/0
+        leftprotoport=gre
+        rightprotoport=gre
+        ike=aes128-sha256-modp3072
+        esp=aes128-sha256
+        
+        vim /etc/strongswan/ipsec.secrets
+        
+        100.100.100.10 150.150.150.10 : PSK “P@ssw0rd”
+        
+        systemctl enable --now ipsec.service
+        
+    - RTR-R
+        
+        vim /etc/gre.up
+        
+        #!/bin/bash
+        
+        ip tunnel add tun0 mode gre local 100.100.100.10 remote 150.150.150.10 
+        
+        ip addr add 10.5.5.1/30 dev tun0
+        
+        ip link set up tun0
+        
+        ip route add 20.20.20.0/24 via 10.5.5.2
+        
+        chmod +x /etc/gre.up
+        
+        /etc/gre.up
+        
+        vim /etc/crontab
+        
+        в конец @reboot root /etc/gre.up
+        
+        vim /etc/strongswan/ipsec.conf
+        
+        ниже “config setup” пишем:
+        conn vpn
+                          auto=start
+                          type=tunnel
+                          authby=secret
+                          left=150.150.150.10 (ip адрес RTR-R)
+                          right=100.100.100.10 (ip адрес RTR-L)
+                          leftsubnet=0.0.0.0/0
+                          rightsubnet=0.0.0.0/0
+                          leftprotoport=gre
+                          rightprotoport=gre
+                          ike=aes128-sha256-modp3072
+                          esp=aes128-sha256
+        
+        vim /etc/strongswan/ipsec.secrets
+        
+        100.100.100.10 150.150.150.10 : PSK “P@ssw0rd”
+        
+        systemctl enable --now ipsec.service
+        
+- Задание 4.
+    - WEB-L
+        
+        vim /etc/openssh/banner.txt
+        
+        Authorized access only
+        
+        vim /etc/openssh/sshd_config
+        
+        расском “Port 22”, пишем (2024 указан в задании)
+        
+        расском “MaxAuthTries 6”, пишем (2 указан в задании)
+        
+        расском “Banner none”, вместо none пишем /etc/openssh/banner.txt
+        
+        добавляем в конец AllowUsers sshuser (sshuser - пользователь указан в задании)
+        
+        adduser sshuser
+        
+        passwd sshuser
+        
+        P@ssw0rd 2х
+        
+        systemctl restart sshd
+        
+    - WEB-R
+        
+        vim /etc/openssh/banner.txt
+        
+        Authorized access only
+        
+        vim /etc/openssh/sshd_config
+        
+        расском “Port 22”, пишем (2024 указан в задании)
+        
+        расском “MaxAuthTries 6”, пишем (2 указан в задании)
+        
+        расском “Banner none”, вместо none пишем /etc/openssh/banner.txt
+        
+        добавляем в конец AllowUsers sshuser (sshuser - пользователь указан в задании)
+        
+        adduser sshuser
+        
+        passwd sshuser
+        
+        P@ssw0rd 2х
+        
+        systemctl restart sshd
+        
+- Задание 5.
+    - SRV-L
+        
+        systemctl enable --now bind
+        
+        vim /etc/bind/options.conf
+        
+        в options:
+        
+        убрать 
+        
+        listen-on { 127.0.0.1; };
+        
+        listen-on-v6 { ::1; };
+        
+        добавить:
+        
+        listen-on { any; };
+        forwarders { 94.232.137.104; };
+        dnssec-validation no;
+        recursion yes;
+        allow-query { any; };
+        allow-recursion { any; };
+        
+        vim /etc/bind/local.conf
+        
+        в конец:
+        
+        zone "au.team" {
+        type master;
+        file "au.team";
+        allow-transfer {20.20.20.100;};
+        };
+        zone "10.10.10.in-addr.arpa" {
+        type master;
+        file "left.reverse";
+        allow-transfer {20.20.20.100;};
+        };
+        zone "20.20.20.in-addr.arpa" {
+        type master;
+        file "right.reverse";
+        allow-transfer {20.20.20.100;};
+        };
+        zone "35.35.35.in-addr.arpa" {
+        type master;
+        file "cli.reverse";
+        allow-transfer {20.20.20.100;};
+        };
+        
+        cd /etc/bind/zone/
+        
+        cp localhost au.team
+        
+        vim au.team
+        
+        $TTL    1D
+        @       IN      SOA     au.team. root.au.team. (
+        2024021400      ; serial
+        12H             ; refresh
+        1H              ; retry
+        1W              ; expire
+        1H              ; ncache
+        )
+        @       IN      NS      au.team.
+        @       IN      A      10.10.10.100
+        isp     IN      A      100.100.100.1
+        rtr-l   IN      A      10.10.10.1
+        rtr-r   IN      A      20.20.20.1
+        web-l   IN      A      10.10.10.110
+        web-r   IN      A      10.10.10.100
+        cli     IN      A      35.35.35.10
+        
+        dns     IN      CNAME      srv-l
+        
+        ntp     IN      CNAME      isp
+        mediawiki       IN      CNAME   web-l
+        
+        cp localhost right.reverse
+        
+        vim right.reverse
+        
+        $TTL    1D
+        @       IN      SOA     20.20.20.in-addr.arpa. root.20.20.20.in-addr.arpa. (
+        2024021400      ; serial
+        12H             ; refresh
+        1H              ; retry
+        1W              ; expire
+        1H              ; ncache
+        )
+        @       IN      NS      au.team.
+        @       IN      A      20.20.20.100
+        1       PTR     rtr-r.au.team.
+        100     PTR     web-r.au.team.
+        
+        cp right.reverse left.reverse
+        
+        vim left.reverse
+        
+        $TTL    1D
+        @       IN      SOA     10.10.10.in-addr.arpa. root.10.10.10.in-addr.arpa. (
+        2024021400      ; serial
+        12H             ; refresh
+        1H              ; retry
+        1W              ; expire
+        1H              ; ncache
+        )
+        @       IN      NS      au.team.
+        @       IN      A      10.10.10.100
+        1       PTR     rtr-l.au.team.
+        100     PTR     srv-l.au.team.
+        110     PTR     web-l.au.team.
+        
+        cp right.reverse cli.reverse
+        
+        vim cli.reverse
+        
+        $TTL    1D
+        @       IN      SOA     35.35.35.in-addr.arpa. root.35.35.35.in-addr.arpa. (
+        2024021400      ; serial
+        12H             ; refresh
+        1H              ; retry
+        1W              ; expire
+        1H              ; ncache
+        )
+        @       IN      NS      au.team.
+        @       IN      A       35.35.35.10
+        1       PTR     isp.au.team.
+        10      PTR     cli.au.team.
+        
+        chmod 777 au.team
+        
+        chmod 777 right.reverse
+        
+        chmod 777 left.reverse
+        
+        chmod 777 cli.reverse
+        
+        systemctl restart bind
+        
+        echo  “nameserver 127.0.0.1” > /etc/net/ifaces/enp0s8/resolv.conf
+        
+        vim /etc/resolv.conf
+        
+        только nameserver 127.0.0.1
+        
+    - WEB-R
+        
+        systemctl enable --now bind
+        
+        vim /etc/bind/options.conf
+        
+        в options:
+        
+        убрать 
+        
+        listen-on { 127.0.0.1; };
+        
+        listen-on-v6 { ::1; };
+        
+        добавить:
+        
+        listen-on { any; };
+        forwarders { 10.10.10.100; };
+        dnssec-validation no;
+        recursion yes;
+        allow-query { any; };
+        allow-recursion { any; };
+        
+        vim /etc/bind/local.conf
+        
+        в конец:
+        
+        zone "au.team" {
+        type slave;
+        file "slave/au.team";
+        masters  {10.10.10.100;};
+        
+        };
+        zone "10.10.10.in-addr.arpa" {
+        type slave;
+        file "slave/left.reverse";
+        masters  {10.10.10.100;};
+        
+        };
+        zone "20.20.20.in-addr.arpa" {
+        type slave;
+        file "slave/right.reverse";
+        masters  {10.10.10.100;};
+        
+        };
+        zone "35.35.35.in-addr.arpa" {
+        type slave;
+        file "slave/cli.reverse";
+        masters  {10.10.10.100;};
+        };
+        
+        chown named:named /var/lib/bind/zone/slave/
+        
+        chown named:named /etc/bind/zone/slave/
+        
+        systemctl restart bind
+        
+        echo  “nameserver 127.0.0.1” > /etc/net/ifaces/enp0s3/resolv.conf
+        
+        vim /etc/resolv.conf
+        
+        только nameserver 127.0.0.1
+        
+    - CLI
+        
+        echo  “nameserver 100.100.100.10” > /etc/net/ifaces/enp0s3/resolv.conf
+        
+        vim /etc/resolv.conf
+        
+         только nameserver 100.100.100.10
+        
+    - ISP
+        
+        echo  “nameserver 100.100.100.10” > /etc/net/ifaces/enp0s8/resolv.conf
+        
+        vim /etc/resolv.conf
+        
+         только nameserver 100.100.100.10
+        
+    - RTR-L
+        
+        echo  “nameserver 10.10.10.100” > /etc/net/ifaces/enp0s8/resolv.conf
+        
+        vim /etc/resolv.conf
+        
+         только nameserver 10.10.10.100
+        
+    - RTR-R
+        
+        echo  “nameserver 20.20.20.100” > /etc/net/ifaces/enp0s8/resolv.conf
+        
+        vim /etc/resolv.conf
+        
+         только nameserver 20.20.20.100
+        
+    - WEB-L
+        
+        echo  “nameserver 10.10.10.100” > /etc/net/ifaces/enp0s3/resolv.conf
+        
+        vim /etc/resolv.conf
+        
+         только nameserver 10.10.10.100
+        
+- Задание 6.
+    - ISP
+        
+        vim /etc/chrony.conf
+        
+        в конец пишем:
+        server 127.0.0.1
+        allow 100.100.100.0/28
+        allow 150.150.150.0/28
+        allow 35.35.35.0/28
+        
+        allow 10.10.10.0/24
+        allow 20.20.20.0/24
+        local stratum 5
+        
+        systemctl restart chronyd
+        
+    - CLI
+        
+        vim /etc/chrony.conf
+        
+        комментируем (пишем #) перед “pool pool.ntp.org iburst”
+        
+        в конец пишем “server 35.35.35.1 iburst”
+        
+        systemctl restart chronyd.service
+        
+    - RTR-R
+        
+        vim /etc/chrony.conf
+        
+        комментируем (пишем #) перед “pool pool.ntp.org iburst”
+        
+        в конец пишем “server 150.150.150.1 iburst”
+        
+        systemctl restart chronyd.service
+        
+    - RTR-L
+        
+        vim /etc/chrony.conf
+        
+        комментируем (пишем #) перед “pool pool.ntp.org iburst”
+        
+        в конец пишем “server 100.100.100.1 iburst”
+        
+        systemctl restart chronyd.service
+        
+    - WEB-R
+        
+        vim /etc/chrony.conf
+        
+        комментируем (пишем #) перед “pool pool.ntp.org iburst”
+        
+        в конец пишем “server 150.150.150.1 iburst”
+        
+        systemctl restart chronyd.service
+        
+    - WEB-L
+        
+        vim /etc/chrony.conf
+        
+        комментируем (пишем #) перед “pool pool.ntp.org iburst”
+        
+        в конец пишем “server 100.100.100.1 iburst”
+        
+        systemctl restart chronyd.service
+        
+    - SRV-L
+        
+        vim /etc/chrony.conf
+        
+        комментируем (пишем #) перед “pool pool.ntp.org iburst”
+        
+        в конец пишем “server 100.100.100.1 iburst”
+        
+        systemctl restart chronyd.service
+        
+- Задание 7.
+    - SRV-L
+        
+        Проверяем lsblk 4 диска размером 1 гб это sdb sdc sdd sde
+        
+        cfdisk /dev/sdb
+        
+        повторить действия со всеми остальными дисками (sdb, sdc, sdd, sde)
+        
+        mdadm --create /dev/md0 --level=5 --raid-devices=4 /dev/sdb1 /dev/sdc1 /dev/sdd1 /dev/sde1
+        
+        mdadm --detail --scan --verbose | tee -a /etc/mdadm.conf
+        
+        mkfs.ext4 /dev/md0
+        
+        mkdir /raid5
+        
+        vim /etc/fstab
+        
+        добавить в конец:
+        
+        /dev/md0        /raid5  ext4    defaults        0       0
+        
+        reboot?
+        
+        mkdir /raid5/nfs
+        
+        chmod 777 /raid5/nfs
+        
+        vim /etc/exports
+        
+        в конец добавляем:
+        /raid5/nfs 10.10.10.110(rw,sync) 20.20.20.100(rw,sync)
+        
+    - WEB-L
+        
+        mkdir /mnt/nfs
+        
+        vim /etc/fstab
+        
+        добавляем в конец
+        
+        10.10.10.100:/raid5/nfs /mnt/nfs        nfs     rw,sync 0       0
+        
+    - WEB-R
+        
+        mkdir /mnt/nfs
+        
+        vim /etc/fstab
+        
+        добавляем в конец
+        
+        10.10.10.100:/raid5/nfs /mnt/nfs        nfs     rw,sync 0       0
+        
+- Задание 8.
+    - WEB-L
+        
+        vim ~/wiki.yml
+        
+        ```
+        version: '3'
+        services:
+          MediaWiki:
+            container_name: wiki
+            image: mediawiki
+            restart: always
+            ports:
+              - 8080:80
+            links:
+              - database
+            volumes:
+              - images:/var/www/html/images
+              # - ./LocalSettings.php:/var/www/html/LocalSettings.php
+        
+          database:
+            container_name: db
+            image: mysql
+            restart: always
+            environment:
+              MYSQL_DATABASE: mediawiki
+              MYSQL_USER: wiki
+              MYSQL_PASSWORD: DEP@ssw0rd
+              MYSQL_RANDOM_ROOT_PASSWORD: 'toor'
+            volumes:
+              - dbvolume:/var/lib/mysql
+        
+        volumes:
+          images:
+          dbvolume:
+            external: true
+        ```
+        
+        docker volume create dbvolume
+        
+        cd ~
+        
+        docker-compose -f /wiki.yml up -d
+        
+        в мозиле в строке url:
+        localhost:8080
+        
+        установка вики
+        
+        языки русские далее
+        
+        далее
+        
+        марияДБ
+        
+        хост бд db
+        
+        имя бд mediawiki
+        
+        имя пользователя бд wiki
+        
+        пароль бд DEP@ssw0rd
+        
+        далее
+        
+        название вики и ваше имя wiki
+        
+        пароль тот же без почты
+        
+        хватит установить далее
+        
+        далее
+        
+        скачаться может в /home/user/Загрузки/
+        
+        cp /home/user/Загрузки/LocalSettings.php ~/LocalSettings.php
+        
+        vim ~/wiki.yml
+        
+        раском 
+        
+        - ./LocalSettings.php:/var/www/html/LocalSettings.php
+        
+        docker-compose -f wiki.yml stop
+        
+        docker-compose -f wiki.yml up -d
+        
+    
+- Задание 9.
+    - CLI
+        
+        запустить 
+        yandex-browser-stable
+        запустить от root
+        yandex-browser-stable --no-sandbox
